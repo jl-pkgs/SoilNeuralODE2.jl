@@ -3,11 +3,11 @@ using Statistics
 
 rng = Xoshiro(123)
 X = reshape(Float32.(0:0.05:2pi), 1, :) |> collect
-Y = sin.(X) .+ 0.02f0 * randn(rng, 1, length(X)) # 模拟含水量
+Y = sin.(X) .+ 0.02f0 * randn(rng, 1, length(X))
 Y = Float32.(Y)
 
 function predict(model, ps, st, X)
-  y_pred, _ = model(X, ps, st)
+  y_pred, st_new = model(X, ps, st)
   return y_pred
 end
 

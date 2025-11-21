@@ -17,5 +17,3 @@ function get_mock_data()
   end
   return u, h
 end
-forcing, θ_obs = get_mock_data()
-
