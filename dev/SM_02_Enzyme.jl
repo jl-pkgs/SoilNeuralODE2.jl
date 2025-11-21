@@ -4,17 +4,21 @@ using Lux, Random, Optimisers, ComponentArrays, Statistics, Printf
 using Enzyme
 using RTableTools
 
+function of_NSE(obs, sim)
+  top = sum((sim .- obs) .^ 2)
+  bot = sum((obs .- mean(obs)) .^ 2)
+  return 1 - (top / bot)
+end
 
 ## 带入真实观测
 f = "data/SM_AR_Batesville_8_WNW_2024.csv"
 df = fread(f)
 
-forcing = Matrix(df[:, [:P_CALC]])' |> collect .|> Float32
-θ_obs = Matrix(df[:, 3:end])' |> collect .|> Float32 # 5, 10, 20, 50, 100 cm
+forcing = Matrix(df[:, [:P_CALC]])' |> collect .|> Float32 # [1, ntime]
+θ_obs = Matrix(df[:, 3:end])' |> collect .|> Float32 # [n_layer, ntime], depth: 5, 10, 20, 50, 100 cm
 
 # 1. 配置与数据生成 (Configuration & Data)
 const L_LAYERS = 5      # 土壤层数
-# const T_STEPS = 50       # 时间步长
 # const BATCH_SZ = 32      # 批次大小
 # const D_INPUT = 2        # 驱动变量: [降雨, 蒸发]
 
@@ -38,43 +42,36 @@ function time_step_forward(model, ps, st, forcing, θ_init)
   ntime = size(forcing, 2)
   # h_preds = Array{T}(undef, L_LAYERS, ntime, BATCH_SZ)
   h_preds = Array{T}(undef, L_LAYERS, ntime)
-  # h_preds = Vector{Matrix{eltype(h_init)}}(undef, ntime)
   h_preds[:, 1] .= θ_init
   st_curr = st
 
-  # 从 t=1 推导 t=2, ..., T
   for t in 1:ntime-1
     h_prev = h_preds[:, t]
     u_curr = forcing[:, t+1]
 
     x_in = vcat(h_prev, u_curr) # 拼接: [土壤状态; 气象驱动]
     dh, st_curr = model(x_in, ps, st_curr)
-    # h_preds[t+1] = h_prev .+ dh
     r = h_prev .+ dh
     h_preds[:, t+1] .= r
   end
-
-  # 堆叠为张量: [L, T, B]
-  # return stack(h_preds, dims=2), st_curr
   return h_preds, st_curr
 end
 
 
+# predict(model, ps, st, forcing, θ_obs[:, 1])
 function predict(model, ps, st, forcing, θ_init)
   h_pred, _ = time_step_forward(model, ps, st, forcing, θ_init)
   return h_pred
 end
-
-# predict(model, ps, st, forcing, θ_obs[:, 1])
 
 # 4. 训练核心 (Training Core)
 function loss_function(model, ps, st, forcing, θ_obs)
   # 使用数据的 t=1 时刻作为初始条件
   h_init = @view θ_obs[:, 1]
   (h_pred, st_new) = time_step_forward(model, ps, st, forcing, h_init) # 预测整个序列
-
-  loss = mean(abs2, h_pred .- θ_obs) # 计算 MSE Loss
-  return loss
+  return -of_NSE(θ_obs, h_pred)
+  # loss = mean(abs2, h_pred .- θ_obs) # 计算 MSE Loss
+  # return loss
 end
 
 
@@ -106,10 +103,6 @@ function main(; lr=0.0005, nepoch=1000, step=50)
       # Reverse, 
       compute_loss, Active,
       Duplicated(ps_c, dps),
-      # Const(model),
-      # Const(st),
-      # Const(forcing),
-      # Const(θ_obs)
     )
 
     opt_state, ps_c = Optimisers.update(opt_state, ps_c, dps) # 参数更新
@@ -123,7 +116,7 @@ function main(; lr=0.0005, nepoch=1000, step=50)
   return ypred
 end
 
-@time ypred = main(; lr=0.02, nepoch=1000, step=100)
+@time ypred = main(; lr=0.005, nepoch=5000, step=100)
 # 1.893517 seconds (4.55 M allocations: 4.220 GiB, 20.33% gc time)
 
 begin

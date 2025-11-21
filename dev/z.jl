@@ -1,9 +1,7 @@
   # @show ntime
 using Lux, Random, Optimisers, Zygote, ComponentArrays, Statistics, Printf
 
-# ==========================================
 # 1. 定义各个子组件
-# ==========================================
 
 # --- 上边界网络: 下渗 ---
 # 输入: [Rain, h_surface]
@@ -51,7 +49,7 @@ end
 # ==========================================
 # 2. 复合模型: BoundaryAwareSoilModel
 # ==========================================
-struct BoundaryAwareSoilModel{T,B,I,E,L} <: Lux.AbstractExplicitLayer
+struct BoundaryAwareSoilModel{T,B,I,E,L} <: AbstractLuxLayer
   top_net::T      # 上边界
   bot_net::B      # 下边界
   internal_net::I # 内部流
