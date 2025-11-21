@@ -87,10 +87,11 @@ function main()
     
     opt_state, ps_c = Optimisers.update(opt_state, ps_c, grads)
 
-    if epoch % 50 == 0
+    if epoch % 100 == 0
       @printf "Epoch %3d | Loss: %.6f\n" epoch loss
     end
   end
 end
 
-main()
+@time main()
+# 4.596878 seconds (29.24 M allocations: 20.164 GiB, 27.79% gc time)
