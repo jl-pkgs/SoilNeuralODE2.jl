@@ -65,13 +65,14 @@ function van_Genuchten_K(θ::T, par::VanGenuchten{T}) where {T<:Real}
 
   # 1. 归一化并软截断 Se 到 [1e-6, 1.0 - 1e-6]，避免 sqrt(0) 和 saturation 处的导数爆炸
   x = (θ - θ_res) / (θ_sat - θ_res)
-  Se = soft_clamp(x, T(1e-6), T(1.0 - 1e-6))
+  ϵ = T(1e-6)
+  Se = soft_clamp(x, ϵ, T(1.0 - ϵ))
 
   # 2. 计算 K，使用 max 确保幂底数非负
   m_inv = 1 / m
   # 添加 epsilon 防止底数为 0
-  term = max(1 - Se^m_inv, zero(T))
-  return Ksat * sqrt(Se) * (1 - (term + T(1e-12))^m)^2
+  term = max(1 - Se^m_inv, ϵ)
+  return Ksat * sqrt(Se) * (1 - (term)^m)^2
 end
 
 # @fastmath
