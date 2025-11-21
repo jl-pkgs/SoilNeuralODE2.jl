@@ -9,25 +9,6 @@ const T_STEPS = 50       # 时间步长
 const BATCH_SZ = 32      # 批次大小
 const D_INPUT = 2        # 驱动变量: [降雨, 蒸发]
 
-function get_mock_data()
-  # 模拟数据：h (状态), u (驱动)
-  # u: [Driver, Time, Batch], h: [Layer, Time, Batch]
-  u = rand(Float32, D_INPUT, T_STEPS, BATCH_SZ) .* 0.1f0
-  h = zeros(Float32, L_LAYERS, T_STEPS, BATCH_SZ)
-
-  # 初始化 t=1
-  h[:, 1, :] .= rand(Float32, L_LAYERS, BATCH_SZ) .* 0.4f0
-
-  # 生成伪真值 (用于训练的 Ground Truth)
-  for t in 2:T_STEPS
-    rain = u[1:1, t, :]
-    # 简化的物理逻辑：上一时刻衰减 + 降雨补给
-    h_prev = h[:, t-1, :]
-    flow_in = vcat(rain, zeros(Float32, L_LAYERS - 1, BATCH_SZ))
-    h[:, t, :] = clamp.(h_prev .* 0.95f0 .+ flow_in, 0f0, 1f0)
-  end
-  return u, h
-end
 
 # ==========================================
 # 2. 模型定义 (Model Architecture)
@@ -107,18 +88,16 @@ function main()
   opt_state = Optimisers.setup(opt, ps_c)
 
   # 数据
-  u_train, h_train = get_mock_data()
-
   println("Start Training: Layers=$(L_LAYERS), Steps=$(T_STEPS)")
   println("-"^30)
 
   p = ps_c
-  # loss_function(net, p, st, u_train, h_train)
+  loss_func(p) = loss_function(net, p, st, forcing, θ_obs)
+  
+  # loss_function(net, p, st, u_train, θ_obs)
   for epoch in 1:1000
     # 自动微分 (Reverse Mode)
-    (loss, st), back = Zygote.pullback(
-      p -> loss_function(net, p, st, u_train, h_train), ps_c
-    )
+    (loss, st), back = Zygote.pullback(loss_func, ps_c)
     grads = back((one(loss), nothing, nothing))[1]
 
     opt_state, ps_c = Optimisers.update(opt_state, ps_c, grads)
