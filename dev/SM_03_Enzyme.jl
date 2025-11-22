@@ -1,5 +1,3 @@
-# 带入了真实观测值
-# kongdd, 20251121
 using Lux, Random, Optimisers, ComponentArrays, Statistics, Printf
 using MLUtils  # DataLoader
 using Enzyme
@@ -21,6 +19,7 @@ function predict(model, ps, st, forcing, θ_init)
   # u_seq: [In, T, B], h_init: [L, B]
   T = eltype(θ_init)
   ntime = size(forcing, 2)
+  L_LAYERS = length(θ_init)
   # h_preds = Array{T}(undef, L_LAYERS, ntime, BATCH_SZ)
   h_preds = Array{T}(undef, L_LAYERS, ntime)
   h_preds[:, 1] .= θ_init
@@ -30,19 +29,12 @@ function predict(model, ps, st, forcing, θ_init)
     h_prev = h_preds[:, t]
     u_curr = forcing[:, t+1]
 
-    # 垂直过程 (Vertical Processes)
     x_in = vcat(h_prev, u_curr) # 拼接: [土壤状态; 气象驱动]
-    dh_vert, st_vert = model.vert(x_in, ps.vert, st_curr.vert)
+    dh_vert, st_vert = model.vert(x_in, ps.vert, st_curr.vert) # Vertical 
+    dh_lat, st_lat = model.lat(h_prev, ps.lat, st_curr.lat) # Lateral 
 
-    # 侧向过程 (Lateral Processes)
-    dh_lat, st_lat = model.lat(h_prev, ps.lat, st_curr.lat)
-
-    # 状态更新: 叠加垂直和侧向变化
-    r = h_prev .+ dh_vert .+ dh_lat
-
+    r = h_prev .+ dh_vert .+ dh_lat # 叠加垂直和侧向变化
     h_preds[:, t+1] .= r
-
-    # 更新组合状态
     st_curr = (vert=st_vert, lat=st_lat)
   end
   return h_preds, st_curr
@@ -66,13 +58,13 @@ function build_lateral_network(; n_layers=5, scale=0.01f0)
   return Chain(
     Dense(n_layers => 32, tanh),
     Dense(32 => 32, tanh),
-    Dense(32 => n_layers),
-    x -> x .* scale
+    Dense(32 => n_layers, init_weight=zeros32, init_bias=zeros32),
+    x -> abs.(x) .* -scale
   )
 end
 
 
-# 加入侧向壤中流
+# TODO: 分步冻结，分步训练不同的模块
 begin
   scale = 0.001f0
   model = (
@@ -82,12 +74,9 @@ begin
   rng = Random.Xoshiro(1) # Use a seeded local RNG for reproducibility
   ps, st = Lux.setup(rng, model) #
 
-  @time ypred = train(X, Y, model; predict, lr=0.5,
-    nepoch=2000, step=50, batchsize=-1)[1] # 不划分batchsize, 需要训练很多次
+  @time ypred = train(X, Y, model; predict, lr=0.0015,
+    nepoch=3000, step=50, batchsize=-1)[1] # 不划分batchsize, 需要训练很多次
 end
-
-# @time ypred = train(data...; lr=0.002, nepoch=1000, step=100,
-#   scale=0.001f0, batchsize=24*30)[1] # 采用batchsize训练不成功
 
 
 if true
@@ -99,5 +88,5 @@ if true
 
   ps = map(plot_layer, 1:5)
   p = plot(ps..., layout=(3, 2), size=(800, 600))
-  savefig("Figure02_SM_Enzyme.png")
+  savefig("Figure03_SM_Enzyme.png")
 end

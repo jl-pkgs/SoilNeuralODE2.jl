@@ -30,7 +30,9 @@ function train(X, Y, model; predict::Function,
   opt = Optimisers.ADAM(lr)
   opt_state = Optimisers.setup(opt, ps_c)
 
-  println("Start Training: Layers=$(L_LAYERS), Steps=$(size(forcing, 2))")
+  L_LAYERS = size(Y, 1)
+  ntime = size(X, 2)
+  println("Start Training: Layers=$(L_LAYERS), Steps=$(ntime)")
   println("-"^30)
   compute_loss(p, X, Y) = loss_function(model, p, st, X, Y; predict)
 
