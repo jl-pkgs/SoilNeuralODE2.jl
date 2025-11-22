@@ -15,14 +15,14 @@ forcing = Matrix(df[:, [:P_CALC]])' |> collect .|> Float32 # [1, ntime]
 X, Y = forcing, θ_obs
 
 
+# 3. 前向传播与时间步进 (Forward Pass)
 # 显式展开时间循环 (Unroll)，模拟物理递推
 function predict(model, ps, st, forcing, θ_init)
   # u_seq: [In, T, B], h_init: [L, B]
   T = eltype(θ_init)
   ntime = size(forcing, 2)
-  nlayer = length(θ_init)
   # h_preds = Array{T}(undef, L_LAYERS, ntime, BATCH_SZ)
-  h_preds = Array{T}(undef, nlayer, ntime)
+  h_preds = Array{T}(undef, L_LAYERS, ntime)
   h_preds[:, 1] .= θ_init
   st_curr = st
 
@@ -30,15 +30,26 @@ function predict(model, ps, st, forcing, θ_init)
     h_prev = h_preds[:, t]
     u_curr = forcing[:, t+1]
 
+    # 垂直过程 (Vertical Processes)
     x_in = vcat(h_prev, u_curr) # 拼接: [土壤状态; 气象驱动]
-    dh, st_curr = model(x_in, ps, st_curr)
-    r = h_prev .+ dh
+    dh_vert, st_vert = model.vert(x_in, ps.vert, st_curr.vert)
+
+    # 侧向过程 (Lateral Processes)
+    dh_lat, st_lat = model.lat(h_prev, ps.lat, st_curr.lat)
+
+    # 状态更新: 叠加垂直和侧向变化
+    r = h_prev .+ dh_vert .+ dh_lat
+
     h_preds[:, t+1] .= r
+
+    # 更新组合状态
+    st_curr = (vert=st_vert, lat=st_lat)
   end
   return h_preds, st_curr
 end
 
-# 定义网络拟合变化量: Δh = Net(h_prev, u_curr)
+
+# 定义垂直流网络拟合变化量: Δh_vert = Net(h_prev, u_curr)
 function build_network(; n_layers=5, n_in=1, scale=0.01f0)
   in_dim = n_layers + n_in
   return Chain(
@@ -49,17 +60,35 @@ function build_network(; n_layers=5, n_in=1, scale=0.01f0)
   )
 end
 
+# 定义侧向流网络: Δh_lat = Net(h_prev)
+# 侧向流通常只取决于当前的水分状态（和地形，此处隐含在参数中）
+function build_lateral_network(; n_layers=5, scale=0.01f0)
+  return Chain(
+    Dense(n_layers => 32, tanh),
+    Dense(32 => 32, tanh),
+    Dense(32 => n_layers),
+    x -> x .* scale
+  )
+end
 
-model = build_network(; scale=0.001f0)
-rng = Random.Xoshiro(1) # Use a seeded local RNG for reproducibility
-ps, st = Lux.setup(rng, model)
 
-@time ypred = train(X, Y, model; predict, lr=0.002, 
-  nepoch=2000, step=50, batchsize=-1)[1] # 不划分batchsize, 需要训练很多次
-# 1.893517 seconds (4.55 M allocations: 4.220 GiB, 20.33% gc time)
+# 加入侧向壤中流
+begin
+  scale = 0.001f0
+  model = (
+    vert=build_network(; scale),
+    lat=build_lateral_network(; scale)
+  )
+  rng = Random.Xoshiro(1) # Use a seeded local RNG for reproducibility
+  ps, st = Lux.setup(rng, model) #
+
+  @time ypred = train(X, Y, model; predict, lr=0.5,
+    nepoch=2000, step=50, batchsize=-1)[1] # 不划分batchsize, 需要训练很多次
+end
 
 # @time ypred = train(data...; lr=0.002, nepoch=1000, step=100,
 #   scale=0.001f0, batchsize=24*30)[1] # 采用batchsize训练不成功
+
 
 if true
   using Plots
