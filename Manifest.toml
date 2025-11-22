@@ -2,7 +2,7 @@
 
 julia_version = "1.11.7"
 manifest_format = "2.0"
-project_hash = "8c157c7b595a8b82741eff77133a41e0b714b6f2"
+project_hash = "a6ad8dec90025be22cc3de2de14833035df3d0da"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "8be2ae325471fc20b11c27bb34b518541d07dd3a"
@@ -833,7 +833,6 @@ version = "1.2.0"
 
 [[deps.FieldMetadata]]
 git-tree-sha1 = "7ae42f7436abf4fb4436b4329945b423d74bf19b"
-repo-rev = "master"
 repo-url = "https://github.com/kongdd/FieldMetadata.jl"
 uuid = "bf96fef3-21d2-5d20-8afa-0e7d4c32a885"
 version = "0.3.2"
@@ -1522,7 +1521,6 @@ version = "1.11.0"
 [[deps.ModelParams]]
 deps = ["DataFrames", "FieldMetadata", "Printf", "Random", "Statistics"]
 git-tree-sha1 = "d6e8c6e0728efaa5b3fd8df9a94f3995924af0a2"
-repo-rev = "master"
 repo-url = "https://github.com/jl-pkgs/ModelParams.jl"
 uuid = "213f2e2a-cade-4ae1-a9bc-67b7781bcca8"
 version = "0.1.0"
@@ -2131,6 +2129,12 @@ weakdeps = ["Enzyme"]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "StyledStrings", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
+
+[[deps.RTableTools]]
+deps = ["CSV", "DataFrames", "DocStringExtensions", "PrecompileTools", "Reexport"]
+git-tree-sha1 = "4b2a2fdbf7e50e7f0e5a7cd08446bba2a627c7e6"
+uuid = "76227a05-389e-44bd-84ad-996dde4b1834"
+version = "0.1.5"
 
 [[deps.Random]]
 deps = ["SHA"]

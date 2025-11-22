@@ -5,7 +5,6 @@ version = "0.1.0"
 
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 ConcreteStructs = "2569d6c7-a4a2-43d3-a901-331e8e4be471"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -28,6 +27,7 @@ OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
+RTableTools = "76227a05-389e-44bd-84ad-996dde4b1834"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SciMLSensitivity = "1ed8b502-d754-442c-8d5d-10ac956f44a1"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -37,10 +37,10 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [sources]
 FieldMetadata = {url = "https://github.com/kongdd/FieldMetadata.jl"}
+ModelParams = {url = "https://github.com/jl-pkgs/ModelParams.jl"}
 
 [compat]
 ADTypes = "1.19.0"
-CSV = "0.10.15"
 ConcreteStructs = "0.2.3"
 DataFrames = "1.8.1"
 Enzyme = "0.13.104"
@@ -54,6 +54,7 @@ OptimizationOptimJL = "0.4.8"
 OrdinaryDiffEq = "6.103.0"
 Printf = "1.11.0"
 QuadGK = "2.11.2"
+RTableTools = "0.1.5"
 StaticArrays = "1.9.15"
 Statistics = "1.11.1"
 StructArrays = "0.7.2"

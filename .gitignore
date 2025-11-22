@@ -1,3 +1,4 @@
 *debug*
 *.png
 *.pdf
+.ipynb_checkpoints
